@@ -23,6 +23,21 @@ python install.py
 
 Para instruções detalhadas, veja [INSTALL.md](INSTALL.md)
 
+## Projeto integrado: `nexus-watchs`
+
+Esta pasta foi integrada neste repositório para concentrar o desenvolvimento em um único lugar.
+
+- Código: `./nexus-watchs`
+- Tipo: app full-stack (Vite + server TS/Express) + desktop (Electron)
+- Comandos rápidos (na raiz do repositório):
+  - `npm run nexus:install`
+  - `npm run nexus:dev`
+  - `npm run nexus:build`
+  - `npm run nexus:start`
+
+Notas:
+- O `nexus-watchs` inclui recursos de IA (ex.: chat). Para isso funcionar, configure `OPENAI_API_KEY` no arquivo `.env` dentro de `./nexus-watchs`.
+
 ## Arquitetura
 
 ```

@@ -1,0 +1,50 @@
+.devices-page h1 {
+  margin-bottom: 20px;
+}
+
+.device-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.device-form input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #1E2444;
+  background-color: #111632;
+  color: #FFFFFF;
+  flex: 1;
+  min-width: 120px;
+}
+
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.device-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #111632;
+  border-radius: 8px;
+}
+
+.device-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.device-info strong {
+  color: #4F8EF7;
+}
+
+.device-info span {
+  color: #A0A5C0;
+  font-size: 12px;
+}

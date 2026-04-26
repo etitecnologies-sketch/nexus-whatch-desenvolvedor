@@ -50,11 +50,16 @@ logs/
 
 # Generated Go files
 go.sum
-(, go.mod.bak
+go.mod.bak
+
+# Nexus Watch (importado)
+nexus-watchs/node_modules/
+nexus-watchs/dist/
+nexus-watchs/.env
+nexus-watchs/.env.local
 
 # Backend sensitive
 *.key
 *.pem
 .venv/
 venv/
-
