@@ -24,6 +24,16 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  authMode:
+    process.env.AUTH_MODE === "local" ||
+    (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY)
+      ? ("local" as const)
+      : ("supabase" as const),
+  localAuthUser:
+    process.env.LOCAL_AUTH_USER ?? (process.env.NODE_ENV === "production" ? "" : "admin"),
+  localAuthPassword:
+    process.env.LOCAL_AUTH_PASSWORD ??
+    (process.env.NODE_ENV === "production" ? "" : "admin"),
 };
 
 // Validação simples para ajudar no deploy
@@ -38,4 +48,3 @@ if (ENV.isProduction) {
     console.error(`⚠️  AVISO: Variáveis de ambiente faltando: ${missing.join(", ")}`);
   }
 }
-

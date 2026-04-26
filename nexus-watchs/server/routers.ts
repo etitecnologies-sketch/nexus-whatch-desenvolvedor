@@ -5,6 +5,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
   getUserDevices,
+  upsertUser,
   createDevice,
   deleteDevice,
   getDeviceCameras,
@@ -27,14 +28,20 @@ import {
 
 import { sdk } from "./_core/sdk";
 import { mapOnvifManufacturerToDriverKey, probeOnvif } from "./_core/onvif";
+import { ENV } from "./_core/env";
+import crypto from "node:crypto";
 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    mode: publicProcedure.query(() => ({ mode: ENV.authMode })),
     login: publicProcedure
       .input(z.object({ supabaseId: z.string(), name: z.string(), email: z.string().optional() }))
       .mutation(async ({ ctx, input }) => {
+        if (ENV.authMode === "local") {
+          throw new Error("Supabase login disabled");
+        }
         const sessionToken = await sdk.createSessionToken(input.supabaseId, {
           name: input.name || input.email || "User",
         });
@@ -43,6 +50,50 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, sessionToken, { 
           ...cookieOptions, 
           maxAge: ONE_YEAR_MS 
+        });
+
+        return { success: true };
+      }),
+    localLogin: publicProcedure
+      .input(z.object({ username: z.string().min(1), password: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        if (ENV.authMode !== "local") {
+          throw new Error("Local login disabled");
+        }
+
+        if (!ENV.localAuthUser || !ENV.localAuthPassword) {
+          throw new Error("Local credentials not configured");
+        }
+
+        const userOk = input.username === ENV.localAuthUser;
+        const passBuf = Buffer.from(input.password);
+        const expectedBuf = Buffer.from(ENV.localAuthPassword);
+        const passOk =
+          passBuf.length === expectedBuf.length &&
+          crypto.timingSafeEqual(passBuf, expectedBuf);
+
+        if (!userOk || !passOk) {
+          throw new Error("Invalid credentials");
+        }
+
+        const supabaseId = `local:${ENV.localAuthUser}`;
+        await upsertUser({
+          supabaseId,
+          name: ENV.localAuthUser,
+          email: null,
+          loginMethod: "local",
+          role: "admin",
+          lastSignedIn: new Date(),
+        });
+
+        const sessionToken = await sdk.createSessionToken(supabaseId, {
+          name: ENV.localAuthUser,
+        });
+
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...cookieOptions,
+          maxAge: ONE_YEAR_MS,
         });
 
         return { success: true };

@@ -107,23 +107,36 @@ class SDKServer {
     let user = await db.getUserBySupabaseId(session.supabaseId);
 
     if (!user) {
-      // If user doesn't exist in our MySQL DB, but has a valid session, 
-      // we might need to sync from Supabase Auth
-      const { data: { user: sbUser }, error } = await supabase.auth.admin.getUserById(session.supabaseId);
-      
-      if (error || !sbUser) {
-        throw ForbiddenError("User not found in auth provider");
-      }
+      if (ENV.authMode === "local") {
+        await db.upsertUser({
+          supabaseId: session.supabaseId,
+          name: session.name,
+          email: null,
+          loginMethod: "local",
+          role: "admin",
+          lastSignedIn: signedInAt,
+        });
+        user = await db.getUserBySupabaseId(session.supabaseId);
+      } else {
+        const {
+          data: { user: sbUser },
+          error,
+        } = await supabase.auth.admin.getUserById(session.supabaseId);
 
-      await db.upsertUser({
-        supabaseId: sbUser.id,
-        name: sbUser.user_metadata?.full_name || sbUser.email || "User",
-        email: sbUser.email ?? null,
-        loginMethod: sbUser.app_metadata?.provider || "supabase",
-        lastSignedIn: signedInAt,
-      });
-      
-      user = await db.getUserBySupabaseId(sbUser.id);
+        if (error || !sbUser) {
+          throw ForbiddenError("User not found in auth provider");
+        }
+
+        await db.upsertUser({
+          supabaseId: sbUser.id,
+          name: sbUser.user_metadata?.full_name || sbUser.email || "User",
+          email: sbUser.email ?? null,
+          loginMethod: sbUser.app_metadata?.provider || "supabase",
+          lastSignedIn: signedInAt,
+        });
+
+        user = await db.getUserBySupabaseId(sbUser.id);
+      }
     }
 
     if (!user) {

@@ -13,6 +13,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isEmailPassword, setIsEmailPassword] = useState(true);
+
+  const isSupabaseConfigured = Boolean(
+    import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+  );
+
+  const modeQuery = trpc.auth.mode.useQuery(undefined, {
+    retry: false,
+  });
+
+  const authMode =
+    modeQuery.data?.mode ?? (isSupabaseConfigured ? "supabase" : "local");
   
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {
@@ -25,7 +36,20 @@ export default function LoginPage() {
     }
   });
 
+  const localLoginMutation = trpc.auth.localLogin.useMutation({
+    onSuccess: () => {
+      toast.success("Login realizado com sucesso!");
+      setLocation("/");
+      window.location.reload();
+    },
+    onError: (error) => {
+      toast.error("Erro no login: " + error.message);
+    },
+  });
+
   useEffect(() => {
+    if (authMode !== "supabase") return;
+
     // Check if user is already logged into Supabase
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -52,9 +76,10 @@ export default function LoginPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [authMode]);
 
   const handleGoogleLogin = async () => {
+    if (authMode !== "supabase") return;
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -71,6 +96,17 @@ export default function LoginPage() {
   const handleEmailPasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
+
+    if (authMode === "local") {
+      setLoading(true);
+      localLoginMutation.mutate(
+        { username: email, password },
+        {
+          onSettled: () => setLoading(false),
+        }
+      );
+      return;
+    }
     
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
@@ -87,6 +123,8 @@ export default function LoginPage() {
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
+
+    if (authMode !== "supabase") return;
     
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({
@@ -117,15 +155,21 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={handleGoogleLogin}
-            disabled={loading}
-          >
-            <img src="https://www.google.com/favicon.ico" className="w-4 h-4 mr-2" alt="Google" />
-            Entrar com Google
-          </Button>
+          {authMode === "supabase" && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+            >
+              <img
+                src="https://www.google.com/favicon.ico"
+                className="w-4 h-4 mr-2"
+                alt="Google"
+              />
+              Entrar com Google
+            </Button>
+          )}
           
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -133,17 +177,21 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                {isEmailPassword ? "Login com e-mail e senha" : "Ou via link de acesso"}
+                {authMode === "local"
+                  ? "Login local (teste)"
+                  : isEmailPassword
+                    ? "Login com e-mail e senha"
+                    : "Ou via link de acesso"}
               </span>
             </div>
           </div>
 
-          {isEmailPassword ? (
+          {authMode === "local" || isEmailPassword ? (
             <form onSubmit={handleEmailPasswordLogin} className="space-y-4">
               <div className="space-y-2">
                 <input
-                  type="email"
-                  placeholder="seu@email.com"
+                  type={authMode === "local" ? "text" : "email"}
+                  placeholder={authMode === "local" ? "usuário" : "seu@email.com"}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -179,13 +227,17 @@ export default function LoginPage() {
           )}
 
           <div className="text-center mt-4">
-            <button
-              type="button"
-              className="text-xs text-muted-foreground hover:text-accent underline"
-              onClick={() => setIsEmailPassword(!isEmailPassword)}
-            >
-              {isEmailPassword ? "Prefiro entrar com link mágico" : "Prefiro entrar com senha"}
-            </button>
+            {authMode === "supabase" && (
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-accent underline"
+                onClick={() => setIsEmailPassword(!isEmailPassword)}
+              >
+                {isEmailPassword
+                  ? "Prefiro entrar com link mágico"
+                  : "Prefiro entrar com senha"}
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>
