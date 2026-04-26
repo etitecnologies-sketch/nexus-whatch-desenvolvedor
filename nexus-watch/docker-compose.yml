@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-nexuswatch}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  cloud:
+    build: ./cloud
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-nexuswatch}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      AUTH_MODE: ${AUTH_MODE:-local}
+      LOCAL_AUTH_USER: ${LOCAL_AUTH_USER:-admin}
+      LOCAL_AUTH_PASSWORD: ${LOCAL_AUTH_PASSWORD:-admin}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:
+

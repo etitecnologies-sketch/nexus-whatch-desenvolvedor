@@ -52,11 +52,11 @@ logs/
 go.sum
 go.mod.bak
 
-# Nexus Watch (importado)
-nexus-watchs/node_modules/
-nexus-watchs/dist/
-nexus-watchs/.env
-nexus-watchs/.env.local
+# Nexus Watch
+nexus-watch/**/node_modules/
+nexus-watch/**/dist/
+nexus-watch/**/.env
+nexus-watch/**/.env.local
 
 # Backend sensitive
 *.key
