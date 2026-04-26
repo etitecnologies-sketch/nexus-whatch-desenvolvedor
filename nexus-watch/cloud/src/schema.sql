@@ -8,20 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS clients (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_constraint
-    WHERE conname = 'clients_name_key'
-  ) THEN
-    ALTER TABLE clients ADD CONSTRAINT clients_name_key UNIQUE (name);
-  END IF;
-END $$;
 
 CREATE TABLE IF NOT EXISTS devices (
   id SERIAL PRIMARY KEY,
